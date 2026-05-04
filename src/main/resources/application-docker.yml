@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://docverify-db:5432/docverify
+  kafka:
+    bootstrap-servers: docverify-kafka:9092
+
+minio:
+  url: http://docverify-minio:9000
