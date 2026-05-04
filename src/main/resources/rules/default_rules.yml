@@ -1,0 +1,18 @@
+standard: "DEFAULT"
+rules:
+  - id: FONT_DEFAULT_001
+    name: "Шрифт по умолчанию"
+    type: FONT_CHECK
+    severity: WARNING
+    params:
+      fontName: "Arial"
+      fontSize: 12
+
+  - id: HEADING_DEFAULT_001
+    name: "Минимальные разделы"
+    type: HEADING_CHECK
+    severity: WARNING
+    params:
+      required:
+        - "Введение"
+        - "Заключение"

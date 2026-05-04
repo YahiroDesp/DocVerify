@@ -1,0 +1,38 @@
+standard: "ГОСТ 7.32-2017"
+rules:
+  - id: FONT_001
+    name: "Основной шрифт документа"
+    type: FONT_CHECK
+    severity: ERROR
+    params:
+      fontName: "Times New Roman"
+      fontSize: 14
+
+  - id: MARGIN_001
+    name: "Поля страницы"
+    type: MARGIN_CHECK
+    severity: ERROR
+    params:
+      left: 30mm
+      right: 15mm
+      top: 20mm
+      bottom: 20mm
+
+  - id: HEADING_001
+    name: "Наличие обязательных разделов"
+    type: HEADING_CHECK
+    severity: ERROR
+    params:
+      required:
+        - "Введение"
+        - "Заключение"
+        - "Список литературы"
+
+  - id: METADATA_001
+    name: "Метаданные документа"
+    type: METADATA_CHECK
+    severity: WARNING
+    params:
+      required:
+        - "title"
+        - "creator"
