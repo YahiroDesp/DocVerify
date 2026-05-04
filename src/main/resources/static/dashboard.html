@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocVerify — Панель управления</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
+
+    .navbar {
+      background: #1a1a2e;
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar .brand { color: #fff; font-size: 18px; font-weight: 700; }
+    .navbar .user-info { display: flex; align-items: center; gap: 16px; }
+    .navbar .user-name { color: #c7d2fe; font-size: 14px; }
+    .navbar .role-badge {
+      background: #4f46e5;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .logout-btn {
+      background: transparent;
+      border: 1px solid #4f46e5;
+      color: #c7d2fe;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .logout-btn:hover { background: #4f46e5; color: #fff; }
+
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+
+    .upload-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+    .upload-card h2 { font-size: 18px; color: #1a1a2e; margin-bottom: 20px; }
+
+    .drop-zone {
+      border: 2px dashed #c7d2fe;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #4f46e5; background: #eef2ff; }
+    .drop-zone .icon { font-size: 36px; margin-bottom: 12px; }
+    .drop-zone p { color: #666; font-size: 14px; }
+    .drop-zone span { color: #4f46e5; font-weight: 600; }
+    #fileInput { display: none; }
+
+    .upload-btn {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      display: none;
+    }
+    .upload-btn:hover { background: #4338ca; }
+    .upload-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .selected-file {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #4f46e5;
+      font-weight: 600;
+    }
+
+    .alert {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+    .alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+
+    .docs-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px;
+    }
+    .docs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .docs-header h2 { font-size: 18px; color: #1a1a2e; }
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid #e0e0e0;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #666;
+    }
+    .refresh-btn:hover { border-color: #4f46e5; color: #4f46e5; }
+
+    .empty-state { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 12px; border-bottom: 1px solid #f7f7f7; font-size: 14px; color: #333; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-PENDING { background: #fef9c3; color: #854d0e; }
+    .status-PROCESSING { background: #dbeafe; color: #1e40af; }
+    .status-DONE { background: #dcfce7; color: #166534; }
+    .status-FAILED { background: #fef2f2; color: #b91c1c; }
+
+    .action-link { color: #4f46e5; text-decoration: none; font-size: 13px; font-weight: 600; }
+    .action-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">DocVerify</div>
+    <div class="user-info">
+      <span class="user-name" id="userName"></span>
+      <span class="role-badge" id="userRole"></span>
+      <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="upload-card">
+      <h2>Загрузить документ</h2>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">📄</div>
+        <p><span>Нажмите для выбора</span> или перетащите файл</p>
+        <p style="margin-top:6px; font-size:12px; color:#aaa;">Поддерживается: PDF, DOCX</p>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.docx" onchange="onFileSelected(this)">
+      <div class="selected-file" id="selectedFile"></div>
+      <button class="upload-btn" id="uploadBtn" onclick="uploadFile()">Загрузить и проверить</button>
+      <div class="alert alert-error" id="uploadError"></div>
+      <div class="alert alert-success" id="uploadSuccess"></div>
+    </div>
+
+    <div class="docs-card">
+      <div class="docs-header">
+        <h2>Мои документы</h2>
+        <button class="refresh-btn" onclick="loadDocs()">Обновить</button>
+      </div>
+      <div id="docsContainer"><div class="empty-state">Загрузка...</div></div>
+    </div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const token = localStorage.getItem('token');
+
+    if (!user || !token) window.location.href = '/';
+
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userRole').textContent = user.role;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    let selectedFile = null;
+
+    function onFileSelected(input) {
+      if (input.files[0]) setFile(input.files[0]);
+    }
+
+    function setFile(file) {
+      selectedFile = file;
+      document.getElementById('selectedFile').textContent = '📎 ' + file.name;
+      document.getElementById('uploadBtn').style.display = 'inline-block';
+      document.getElementById('uploadError').style.display = 'none';
+      document.getElementById('uploadSuccess').style.display = 'none';
+    }
+
+    async function uploadFile() {
+      if (!selectedFile) return;
+      const btn = document.getElementById('uploadBtn');
+      const errorEl = document.getElementById('uploadError');
+      const successEl = document.getElementById('uploadSuccess');
+
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('userId', user.id);
+
+      try {
+        const res = await fetch('/api/v1/documents', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errorEl.textContent = data.error || 'Ошибка загрузки';
+          errorEl.style.display = 'block';
+          return;
+        }
+        successEl.textContent = 'Документ загружен и отправлен на проверку!';
+        successEl.style.display = 'block';
+        selectedFile = null;
+        document.getElementById('selectedFile').textContent = '';
+        document.getElementById('uploadBtn').style.display = 'none';
+        document.getElementById('fileInput').value = '';
+        setTimeout(loadDocs, 1500);
+      } catch (e) {
+        errorEl.textContent = 'Ошибка соединения с сервером';
+        errorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Загрузить и проверить';
+      }
+    }
+
+    async function loadDocs() {
+      const container = document.getElementById('docsContainer');
+      try {
+        const res = await fetch('/api/v1/documents/my?userId=' + user.id, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) { container.innerHTML = '<div class="empty-state">Ошибка загрузки документов</div>'; return; }
+        const docs = await res.json();
+        if (!docs.length) { container.innerHTML = '<div class="empty-state">Документов пока нет. Загрузите первый!</div>'; return; }
+        container.innerHTML = `
+          <table>
+            <thead><tr><th>Название</th><th>Статус</th><th>Дата</th><th>Действия</th></tr></thead>
+            <tbody>${docs.map(d => `
+              <tr>
+                <td>${d.originalName || d.fileName || d.id}</td>
+                <td><span class="status-badge status-${d.status}">${translateStatus(d.status)}</span></td>
+                <td>${d.uploadedAt ? new Date(d.uploadedAt).toLocaleString('ru') : '—'}</td>
+                <td>${d.status === 'DONE' ? `<a class="action-link" href="/api/v1/reports/${d.id}" target="_blank">Отчёт</a>` : '—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
+      }
+    }
+
+    function translateStatus(s) {
+      return { PENDING: 'Ожидает', PROCESSING: 'Проверяется', DONE: 'Готово', FAILED: 'Ошибка' }[s] || s;
+    }
+
+    loadDocs();
+  </script>
+</body>
+</html>

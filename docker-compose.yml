@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: docverify_user
       POSTGRES_PASSWORD: docverify_pass
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - docverify_pg_data:/var/lib/postgresql/data
     networks:

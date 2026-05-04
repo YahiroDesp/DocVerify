@@ -53,34 +53,31 @@ public class DocxParser {
     }
 
     private Map<String, String> extractStyles(XWPFDocument doc) {
-        Map<String, String> styles = new HashMap<>();
-        if (doc.getStyles() != null) {
-            doc.getStyles().getUsedStyleList().forEach(s ->
-                    styles.put(s.getStyleId(), s.getName()));
-        }
-        return styles;
+        return new HashMap<>();
     }
 
     private Map<String, String> extractMetadata(XWPFDocument doc) {
         Map<String, String> metadata = new HashMap<>();
-        var props = doc.getPackage().getPackageProperties();
-        props.getTitleProperty().ifPresent(v -> metadata.put("title", v));
-        props.getCreatorProperty().ifPresent(v -> metadata.put("creator", v));
-        props.getDescriptionProperty().ifPresent(v -> metadata.put("description", v));
+        try {
+            var props = doc.getPackage().getPackageProperties();
+            props.getTitleProperty().ifPresent(v -> metadata.put("title", v));
+            props.getCreatorProperty().ifPresent(v -> metadata.put("creator", v));
+            props.getDescriptionProperty().ifPresent(v -> metadata.put("description", v));
+        } catch (Exception e) {
+            log.warn("Could not extract metadata: {}", e.getMessage());
+        }
         return metadata;
     }
 
     private PageMargins extractMargins(XWPFDocument doc) {
         PageMargins margins = new PageMargins();
-        if (!doc.getDocument().getBody().getSectPrList().isEmpty()) {
-            var sectPr = doc.getDocument().getBody().getSectPrList().get(0);
-            if (sectPr.getPgMar() != null) {
-                var pgMar = sectPr.getPgMar();
-                margins.setLeft(pgMar.getLeft() != null ? pgMar.getLeft().doubleValue() / 567.0 : 0);
-                margins.setRight(pgMar.getRight() != null ? pgMar.getRight().doubleValue() / 567.0 : 0);
-                margins.setTop(pgMar.getTop() != null ? pgMar.getTop().doubleValue() / 567.0 : 0);
-                margins.setBottom(pgMar.getBottom() != null ? pgMar.getBottom().doubleValue() / 567.0 : 0);
-            }
+        var sectPr = doc.getDocument().getBody().getSectPr();
+        if (sectPr != null && sectPr.getPgMar() != null) {
+            var pgMar = sectPr.getPgMar();
+            margins.setLeft(pgMar.getLeft() instanceof Number n ? n.doubleValue() / 567.0 : 0);
+            margins.setRight(pgMar.getRight() instanceof Number n ? n.doubleValue() / 567.0 : 0);
+            margins.setTop(pgMar.getTop() instanceof Number n ? n.doubleValue() / 567.0 : 0);
+            margins.setBottom(pgMar.getBottom() instanceof Number n ? n.doubleValue() / 567.0 : 0);
         }
         return margins;
     }

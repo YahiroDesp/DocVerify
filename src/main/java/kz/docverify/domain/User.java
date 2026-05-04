@@ -28,6 +28,9 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
 }

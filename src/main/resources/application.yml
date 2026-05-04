@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/docverify
+    url: jdbc:postgresql://localhost:5434/docverify
     username: docverify_user
     password: docverify_pass
     driver-class-name: org.postgresql.Driver
@@ -27,6 +27,10 @@ minio:
   access-key: minioadmin
   secret-key: minioadmin
   bucket: docverify-files
+
+jwt:
+  secret: docverify-secret-key-must-be-at-least-32-characters-long
+  expiration: 86400000
 
 server:
   port: 8080

@@ -2,6 +2,7 @@ package kz.docverify.parser;
 
 import kz.docverify.parser.model.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ import java.util.*;
 public class PdfParser {
 
     public ParsedDocument parse(InputStream inputStream) throws IOException {
-        try (PDDocument doc = PDDocument.load(inputStream)) {
+        try (PDDocument doc = Loader.loadPDF(inputStream.readAllBytes())) {
             ParsedDocument result = new ParsedDocument();
 
             PDFTextStripper stripper = new PDFTextStripper();
