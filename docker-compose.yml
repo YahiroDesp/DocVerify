@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  docverify-db:
+    image: postgres:16-alpine
+    container_name: docverify-db
+    environment:
+      POSTGRES_DB: docverify
+      POSTGRES_USER: docverify_user
+      POSTGRES_PASSWORD: docverify_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - docverify_pg_data:/var/lib/postgresql/data
+    networks:
+      - docverify-net
+
+  docverify-minio:
+    image: minio/minio:latest
+    container_name: docverify-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - docverify_minio_data:/data
+    networks:
+      - docverify-net
+
+  docverify-zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: docverify-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - docverify-net
+
+  docverify-kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: docverify-kafka
+    depends_on:
+      - docverify-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: docverify-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - docverify-net
+
+  docverify-app:
+    build: .
+    container_name: docverify-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - docverify-db
+      - docverify-kafka
+      - docverify-minio
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://docverify-db:5432/docverify
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: docverify-kafka:9092
+      MINIO_URL: http://docverify-minio:9000
+    networks:
+      - docverify-net
+
+volumes:
+  docverify_pg_data:
+  docverify_minio_data:
+
+networks:
+  docverify-net:
+    driver: bridge
