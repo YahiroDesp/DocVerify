@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import org.springframework.core.io.buffer.DataBufferUtils;
+
+import java.io.ByteArrayInputStream;
 import java.util.UUID;
 
 @Slf4j
@@ -30,46 +30,36 @@ public class DocumentService {
     private final DocumentMapper documentMapper;
 
     public Mono<DocumentDto> uploadAndQueue(FilePart file, String userId) {
-        return Mono.fromCallable(() -> {
-            String fileName = file.filename();
-            String fileType = resolveFileType(fileName);
+        return DataBufferUtils.join(file.content())
+                .publishOn(Schedulers.boundedElastic())
+                .map(dataBuffer -> {
+                    byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                    dataBuffer.read(bytes);
+                    DataBufferUtils.release(dataBuffer);
 
-            Document document = new Document();
-            User owner = new User();
-            owner.setId(UUID.fromString(userId));
-            document.setOwner(owner);
-            document.setFileName(fileName);
-            document.setFileType(fileType);
-            document.setStorageKey("pending");
-            document.setStatus("UPLOADING");
-            Document saved = documentRepository.save(document);
+                    String fileName = file.filename();
+                    String fileType = resolveFileType(fileName);
 
-            PipedInputStream pis = new PipedInputStream();
-            PipedOutputStream pos = new PipedOutputStream(pis);
+                    Document document = new Document();
+                    User owner = new User();
+                    owner.setId(UUID.fromString(userId));
+                    document.setOwner(owner);
+                    document.setFileName(fileName);
+                    document.setFileType(fileType);
+                    document.setStorageKey("pending");
+                    document.setStatus("UPLOADING");
+                    Document saved = documentRepository.save(document);
 
-            file.content().subscribeOn(Schedulers.boundedElastic())
-                    .doOnTerminate(() -> {
-                        try { pos.close(); } catch (IOException ignored) {}
-                    })
-                    .subscribe(dataBuffer -> {
-                        try {
-                            byte[] bytes = new byte[dataBuffer.readableByteCount()];
-                            dataBuffer.read(bytes);
-                            pos.write(bytes);
-                        } catch (IOException e) {
-                            log.error("Error writing to pipe", e);
-                        }
-                    });
+                    String storageKey = storageService.uploadFile(
+                            fileName, new ByteArrayInputStream(bytes), bytes.length, resolveContentType(fileType));
 
-            String storageKey = storageService.uploadFile(fileName, pis, -1, resolveContentType(fileType));
+                    saved.setStorageKey(storageKey);
+                    saved.setStatus("PENDING");
+                    documentRepository.save(saved);
 
-            saved.setStorageKey(storageKey);
-            saved.setStatus("PENDING");
-            documentRepository.save(saved);
-
-            eventProducer.sendUploadEvent(saved.getId(), storageKey, fileType);
-            return documentMapper.toDto(saved);
-        }).subscribeOn(Schedulers.boundedElastic());
+                    eventProducer.sendUploadEvent(saved.getId(), storageKey, fileType);
+                    return documentMapper.toDto(saved);
+                });
     }
 
     public Mono<DocumentDto> getById(UUID id) {
