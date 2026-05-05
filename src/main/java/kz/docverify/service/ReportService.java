@@ -54,6 +54,7 @@ public class ReportService {
         log.info("Report saved for document: {}, score: {}", documentId, result.getScore());
     }
 
+    @Transactional(readOnly = true)
     public ReportDto getByDocumentId(UUID documentId) {
         ValidationReport report = reportRepository.findByDocumentId(documentId)
                 .orElseThrow(() -> new RuntimeException("Report not found for document: " + documentId));
