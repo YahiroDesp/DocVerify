@@ -42,10 +42,22 @@ public class DocxParser {
             pp.setText(p.getText());
             pp.setLineNumber(lineNumber);
             pp.setPageNumber(1);
+            pp.setStyle(p.getStyle());
             if (!p.getRuns().isEmpty()) {
                 XWPFRun run = p.getRuns().get(0);
                 pp.setFontName(run.getFontName());
                 pp.setFontSize(run.getFontSizeAsDouble());
+            }
+            if (p.getAlignment() != null) {
+                pp.setAlignment(p.getAlignment().name());
+            }
+            var ppr = p.getCTP().getPPr();
+            if (ppr != null && ppr.getSpacing() != null && ppr.getSpacing().getLine() != null) {
+                pp.setLineSpacing(Double.parseDouble(ppr.getSpacing().getLine().toString()) / 240.0);
+            }
+            int indent = p.getIndentationFirstLine();
+            if (indent > 0) {
+                pp.setFirstLineIndent(indent / 567.0);
             }
             result.add(pp);
         }

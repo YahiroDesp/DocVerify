@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocVerify — Отчёт</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
+
+    .navbar {
+      background: #1a1a2e;
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar .brand { color: #fff; font-size: 18px; font-weight: 700; }
+    .back-btn {
+      background: transparent;
+      border: 1px solid #4f46e5;
+      color: #c7d2fe;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .back-btn:hover { background: #4f46e5; color: #fff; }
+
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+    .report-header h2 { font-size: 20px; color: #1a1a2e; margin-bottom: 6px; }
+    .report-meta { font-size: 13px; color: #888; }
+
+    .score-block { text-align: center; min-width: 120px; }
+    .score-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-weight: 700;
+    }
+    .score-value { font-size: 28px; line-height: 1; }
+    .score-label { font-size: 11px; text-transform: uppercase; margin-top: 2px; }
+    .score-high { background: #dcfce7; color: #166534; }
+    .score-mid  { background: #fef9c3; color: #854d0e; }
+    .score-low  { background: #fef2f2; color: #b91c1c; }
+
+    .stats { display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+    .stat-item {
+      flex: 1;
+      min-width: 100px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-num { font-size: 24px; font-weight: 700; color: #1a1a2e; }
+    .stat-lbl { font-size: 12px; color: #888; margin-top: 2px; }
+    .stat-error .stat-num { color: #b91c1c; }
+    .stat-warning .stat-num { color: #854d0e; }
+
+    .section-title { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+
+    .empty-state { text-align: center; padding: 32px; color: #aaa; font-size: 14px; }
+    .ok-icon { font-size: 40px; margin-bottom: 8px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 11px 12px; border-bottom: 1px solid #f7f7f7; font-size: 13px; color: #333; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge-ERROR   { background: #fef2f2; color: #b91c1c; }
+    .badge-WARNING { background: #fef9c3; color: #854d0e; }
+
+    .location { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    .loading { text-align: center; padding: 60px; color: #888; font-size: 14px; }
+    .error-state { text-align: center; padding: 40px; color: #b91c1c; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">DocVerify</div>
+    <a class="back-btn" href="/dashboard.html">← Назад</a>
+  </nav>
+
+  <div class="container">
+    <div id="content"><div class="loading">Загрузка отчёта...</div></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/';
+
+    const params = new URLSearchParams(location.search);
+    const docId = params.get('docId');
+    if (!docId) window.location.href = '/dashboard.html';
+
+    async function loadReport() {
+      try {
+        const res = await fetch('/api/v1/reports/' + docId, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) {
+          document.getElementById('content').innerHTML =
+            '<div class="error-state">Отчёт не найден или ещё не готов.</div>';
+          return;
+        }
+        const report = await res.json();
+        render(report);
+      } catch (e) {
+        document.getElementById('content').innerHTML =
+          '<div class="error-state">Ошибка загрузки отчёта.</div>';
+      }
+    }
+
+    function render(r) {
+      const score = r.score != null ? parseFloat(r.score) : 0;
+      const errors   = (r.issues || []).filter(i => i.severity === 'ERROR').length;
+      const warnings = (r.issues || []).filter(i => i.severity === 'WARNING').length;
+      const scoreClass = score >= 80 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
+      const date = r.checkedAt ? new Date(r.checkedAt).toLocaleString('ru') : '—';
+
+      let issuesHtml;
+      if (!r.issues || r.issues.length === 0) {
+        issuesHtml = `<div class="empty-state"><div class="ok-icon">✅</div>Нарушений не найдено</div>`;
+      } else {
+        issuesHtml = `
+          <table>
+            <thead><tr>
+              <th>Уровень</th>
+              <th>Правило</th>
+              <th>Описание</th>
+              <th>Место</th>
+            </tr></thead>
+            <tbody>
+              ${r.issues.map(i => `
+                <tr>
+                  <td><span class="badge badge-${i.severity}">${i.severity === 'ERROR' ? 'Ошибка' : 'Предупреждение'}</span></td>
+                  <td style="font-size:12px;color:#666;">${i.ruleId || '—'}</td>
+                  <td>${i.description || '—'}</td>
+                  <td>
+                    ${i.page ? `<div class="location">Стр. ${i.page}${i.line ? ', стр. ' + i.line : ''}</div>` : '<span style="color:#ccc">—</span>'}
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      }
+
+      document.getElementById('content').innerHTML = `
+        <div class="card">
+          <div class="report-header">
+            <div>
+              <h2>${r.fileName || 'Документ'}</h2>
+              <div class="report-meta">Стандарт: ГОСТ 7.32-2017 &nbsp;·&nbsp; Проверено: ${date}</div>
+            </div>
+            <div class="score-block">
+              <div class="score-circle ${scoreClass}">
+                <span class="score-value">${score.toFixed(0)}</span>
+                <span class="score-label">баллов</span>
+              </div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-num">${(r.issues || []).length}</div>
+              <div class="stat-lbl">Всего нарушений</div>
+            </div>
+            <div class="stat-item stat-error">
+              <div class="stat-num">${errors}</div>
+              <div class="stat-lbl">Ошибок</div>
+            </div>
+            <div class="stat-item stat-warning">
+              <div class="stat-num">${warnings}</div>
+              <div class="stat-lbl">Предупреждений</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Нарушения</div>
+          ${issuesHtml}
+        </div>`;
+    }
+
+    loadReport();
+  </script>
+</body>
+</html>

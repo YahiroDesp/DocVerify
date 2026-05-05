@@ -278,7 +278,7 @@
                 <td>${d.originalName || d.fileName || d.id}</td>
                 <td><span class="status-badge status-${d.status}">${translateStatus(d.status)}</span></td>
                 <td>${d.uploadedAt ? new Date(d.uploadedAt).toLocaleString('ru') : '—'}</td>
-                <td>${d.status === 'DONE' ? `<a class="action-link" href="/api/v1/reports/${d.id}" target="_blank">Отчёт</a>` : '—'}</td>
+                <td>${d.status === 'DONE' ? `<a class="action-link" href="/report.html?docId=${d.id}">Отчёт</a>` : '—'}</td>
               </tr>`).join('')}
             </tbody>
           </table>`;

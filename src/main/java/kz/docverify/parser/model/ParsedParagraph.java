@@ -9,4 +9,8 @@ public class ParsedParagraph {
     private Double fontSize;
     private Integer pageNumber;
     private Integer lineNumber;
+    private String alignment;
+    private Double lineSpacing;
+    private Double firstLineIndent;
+    private String style;
 }

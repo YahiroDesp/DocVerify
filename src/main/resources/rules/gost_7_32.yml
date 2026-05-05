@@ -36,3 +36,18 @@ rules:
       required:
         - "title"
         - "creator"
+
+  - id: LINE_SPACING_001
+    name: "Межстрочный интервал"
+    type: LINE_SPACING_CHECK
+    severity: WARNING
+    params:
+      minSpacing: 1.5
+      maxSpacing: 2.0
+
+  - id: ALIGNMENT_001
+    name: "Выравнивание основного текста"
+    type: ALIGNMENT_CHECK
+    severity: WARNING
+    params:
+      expected: "BOTH"

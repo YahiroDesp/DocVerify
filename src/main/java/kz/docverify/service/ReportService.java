@@ -49,7 +49,7 @@ public class ReportService {
         report.setIssues(issues);
         reportRepository.save(report);
 
-        document.setStatus("VALIDATED");
+        document.setStatus("DONE");
         documentRepository.save(document);
         log.info("Report saved for document: {}, score: {}", documentId, result.getScore());
     }
