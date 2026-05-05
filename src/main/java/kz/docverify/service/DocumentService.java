@@ -69,6 +69,14 @@ public class DocumentService {
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
+    public reactor.core.publisher.Flux<DocumentDto> getByOwner(UUID ownerId) {
+        return reactor.core.publisher.Flux.fromIterable(
+                documentRepository.findByOwnerId(ownerId).stream()
+                        .map(documentMapper::toDto)
+                        .toList()
+        ).subscribeOn(Schedulers.boundedElastic());
+    }
+
     private String resolveFileType(String fileName) {
         if (fileName.endsWith(".pdf")) return "PDF";
         if (fileName.endsWith(".docx")) return "DOCX";
